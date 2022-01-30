@@ -9,6 +9,13 @@ import SignIn from './src/pages/SignIn';
 import SignUp from './src/pages/SignUp';
 import {RootState} from './src/store/reducer';
 import {useSelector} from 'react-redux';
+import useSocket from './src/hooks/useSocket';
+import axios, {AxiosError} from 'axios';
+import {Alert} from 'react-native';
+import {useAppDispatch} from './src/store';
+import {getUrl} from './src/api';
+import userSlice from './src/slices/userSlice';
+import EncryptedStorage from 'react-native-encrypted-storage';
 
 export type LoggedInParamList = {
   Orders: undefined;
@@ -26,7 +33,66 @@ const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
 function AppInner() {
+  const dispatch = useAppDispatch();
   const isLoggedIn = useSelector((state: RootState) => !!state.user.email);
+
+  const [socket, disconnect] = useSocket();
+
+  React.useEffect(() => {
+    const callback = (data: any) => {
+      console.log(data);
+    };
+    if (socket && isLoggedIn) {
+      socket.emit('acceptOrder', 'hello');
+      socket.on('order', callback);
+    }
+    return () => {
+      if (socket) {
+        socket.off('order', callback);
+      }
+    };
+  }, [isLoggedIn, socket]);
+
+  React.useEffect(() => {
+    if (!isLoggedIn) {
+      console.log('!isLoggedIn', !isLoggedIn);
+      disconnect();
+    }
+  }, [isLoggedIn, disconnect]);
+
+  React.useEffect(() => {
+    const getTokenAndRefresh = async () => {
+      try {
+        const token = await EncryptedStorage.getItem('refreshToken');
+        if (!token) {
+          return;
+        }
+        const response = await axios.post(
+          `${getUrl()}/refreshToken`,
+          {},
+          {
+            headers: {
+              authorization: `Bearer ${token}`,
+            },
+          },
+        );
+        dispatch(
+          userSlice.actions.setUser({
+            name: response.data.data.name,
+            email: response.data.data.email,
+            accessToken: response.data.data.accessToken,
+          }),
+        );
+      } catch (error) {
+        console.error(error);
+        if ((error as AxiosError).response?.data.code === 'expired') {
+          Alert.alert('알림', '다시 로그인 해주세요.');
+        }
+      }
+    };
+    getTokenAndRefresh();
+  }, [dispatch]);
+
   return (
     <NavigationContainer>
       {isLoggedIn ? (

@@ -4,7 +4,6 @@ const initialState = {
   name: '',
   email: '',
   accessToken: '',
-  refreshToken: '',
 };
 
 const userSlice = createSlice({
@@ -14,8 +13,7 @@ const userSlice = createSlice({
     setUser(state, action) {
       state.email = action.payload.email;
       state.name = action.payload.name;
-      state.accessToken = action.payload.accssToken;
-      state.refreshToken = action.payload.refreshToken;
+      state.accessToken = action.payload.accessToken;
     },
   },
   extraReducers: builder => {},

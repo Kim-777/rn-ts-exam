@@ -1,5 +1,7 @@
 import {
+  ActivityIndicator,
   Alert,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -8,8 +10,13 @@ import {
 } from 'react-native';
 import React from 'react';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
-import {RootStackParamList} from '../../App';
+import {RootStackParamList} from '../../AppInner';
 import DismissKeyboardView from '../components/DismissKeyboardView';
+import {AxiosError} from 'axios';
+import {useAppDispatch} from '../store';
+import userSlice from '../slices/userSlice';
+import restApi from '../api';
+import EncryptedStorage from 'react-native-encrypted-storage';
 
 const styles = StyleSheet.create({
   inputWrapper: {
@@ -46,6 +53,8 @@ const styles = StyleSheet.create({
 type SignInScreenProps = NativeStackScreenProps<RootStackParamList, 'SignIn'>;
 
 const SignIn = ({navigation}: SignInScreenProps) => {
+  const dispatch = useAppDispatch();
+  const [loading, setLoading] = React.useState<boolean | null>(null);
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const emailRef = React.useRef<TextInput | null>(null);
@@ -59,13 +68,46 @@ const SignIn = ({navigation}: SignInScreenProps) => {
     setPassword(text);
   };
 
-  const onSubmit = () => {
+  const onSubmit = async () => {
+    if (loading) {
+      return;
+    }
     if (!email || !email.trim()) {
       return Alert.alert('알림', '이메일을 입력해주세요.');
     }
 
     if (!password || !password.trim()) {
       return Alert.alert('알림', '비밀번호를 입력해주세요.');
+    }
+
+    try {
+      setLoading(true);
+      const response = await restApi.post(`/login`, {
+        email,
+        password, // hash화, 일방향 암호화 //  양방향 암호화
+      });
+      console.log('response :-=========::: ', response);
+      Alert.alert('알림', '로그인 되었습니다.');
+      dispatch(
+        userSlice.actions.setUser({
+          name: response.data.data.name,
+          email: response.data.data.email,
+          accessToken: response.data.data.accessToken,
+        }),
+      );
+
+      await EncryptedStorage.setItem(
+        'refreshToken',
+        response.data.data.refreshToken,
+      );
+    } catch (error: any) {
+      // const errorResponse = (error as AxiosError).response;
+      console.warn('error :::: ', error);
+      if ((error as AxiosError).response) {
+        Alert.alert('알림', error.response.data.message);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -102,7 +144,7 @@ const SignIn = ({navigation}: SignInScreenProps) => {
           placeholder="비밀번호를 입력해주세요."
           autoComplete="password"
           ref={passwordRef}
-          keyboardType="number-pad"
+          keyboardType={Platform.OS === 'android' ? 'default' : 'ascii-capable'}
           textContentType="password"
           importantForAccessibility="yes"
           onSubmitEditing={onSubmit}
@@ -112,10 +154,15 @@ const SignIn = ({navigation}: SignInScreenProps) => {
         <Pressable
           style={[styles.loginButton, canGoNext && styles.loginButtonActive]}
           onPress={onSubmit}
-          disabled={!canGoNext}>
-          <Text style={styles.loginButtonText}>로그인</Text>
+          disabled={!canGoNext || loading}>
+          {loading ? (
+            <ActivityIndicator />
+          ) : (
+            <Text style={styles.loginButtonText}>로그인</Text>
+          )}
         </Pressable>
         <Pressable
+          disabled={loading}
           onPress={() => {
             navigation.navigate('SignUp');
           }}>

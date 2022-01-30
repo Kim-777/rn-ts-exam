@@ -12,7 +12,8 @@ import {
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../../AppInner';
 import DismissKeyboardView from '../components/DismissKeyboardView';
-import axios, {AxiosError} from 'axios';
+import {AxiosError} from 'axios';
+import restApi from '../api';
 
 const styles = StyleSheet.create({
   textInput: {
@@ -95,7 +96,7 @@ function SignUp({navigation}: SignUpScreenProps) {
 
     try {
       setLoading(true);
-      const response = await axios.post(`http://10.0.2.2:3105/user`, {
+      const response = await restApi.post(`/user`, {
         email,
         name,
         password, // hash화, 일방향 암호화 //  양방향 암호화
@@ -128,6 +129,7 @@ function SignUp({navigation}: SignUpScreenProps) {
           returnKeyType="next"
           clearButtonMode="while-editing"
           ref={emailRef}
+          autoCapitalize="none"
           onSubmitEditing={() => nameRef.current?.focus()}
           blurOnSubmit={false}
         />
