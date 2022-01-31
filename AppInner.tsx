@@ -16,6 +16,7 @@ import {useAppDispatch} from './src/store';
 import {getUrl} from './src/api';
 import userSlice from './src/slices/userSlice';
 import EncryptedStorage from 'react-native-encrypted-storage';
+import orderSlice from './src/slices/orderSlice';
 
 export type LoggedInParamList = {
   Orders: undefined;
@@ -41,6 +42,7 @@ function AppInner() {
   React.useEffect(() => {
     const callback = (data: any) => {
       console.log(data);
+      dispatch(orderSlice.actions.oddOrder(data));
     };
     if (socket && isLoggedIn) {
       socket.emit('acceptOrder', 'hello');
@@ -84,7 +86,7 @@ function AppInner() {
           }),
         );
       } catch (error) {
-        console.error(error);
+        console.warn(error.response);
         if ((error as AxiosError).response?.data.code === 'expired') {
           Alert.alert('알림', '다시 로그인 해주세요.');
         }

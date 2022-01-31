@@ -9,7 +9,9 @@ import {RootState} from '../store/reducer';
 import EncryptedStorage from 'react-native-encrypted-storage';
 
 function Settings() {
-  const accessToken = useSelector((state: RootState) => state.user.accessToken);
+  const {accessToken, name, money} = useSelector(
+    (state: RootState) => state.user,
+  );
   const dispatch = useAppDispatch();
   const onLogout = React.useCallback(async () => {
     try {
@@ -39,6 +41,15 @@ function Settings() {
 
   return (
     <View>
+      <View style={styles.money}>
+        <Text style={styles.moneyText}>
+          {name}님의 수익금{' '}
+          <Text style={{fontWeight: 'bold'}}>
+            {money.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+          </Text>
+          원
+        </Text>
+      </View>
       <View style={styles.buttonZone}>
         <Pressable
           style={StyleSheet.compose(
@@ -70,6 +81,12 @@ const styles = StyleSheet.create({
   },
   loginButtonText: {
     color: 'white',
+    fontSize: 16,
+  },
+  money: {
+    padding: 20,
+  },
+  moneyText: {
     fontSize: 16,
   },
 });

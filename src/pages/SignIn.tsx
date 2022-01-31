@@ -124,6 +124,7 @@ const SignIn = ({navigation}: SignInScreenProps) => {
           autoComplete="email"
           keyboardType="email-address"
           placeholder="이메일을 입력해주세요."
+          autoCapitalize="none"
           returnKeyType="next"
           ref={emailRef}
           onSubmitEditing={() => {

@@ -4,6 +4,7 @@ const initialState = {
   name: '',
   email: '',
   accessToken: '',
+  money: 0,
 };
 
 const userSlice = createSlice({
