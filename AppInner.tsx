@@ -13,7 +13,7 @@ import useSocket from './src/hooks/useSocket';
 import axios, {AxiosError} from 'axios';
 import {Alert} from 'react-native';
 import {useAppDispatch} from './src/store';
-import {getUrl} from './src/api';
+import restApi, {getUrl} from './src/api';
 import userSlice from './src/slices/userSlice';
 import EncryptedStorage from 'react-native-encrypted-storage';
 import orderSlice from './src/slices/orderSlice';
@@ -53,7 +53,7 @@ function AppInner() {
         socket.off('order', callback);
       }
     };
-  }, [isLoggedIn, socket]);
+  }, [isLoggedIn, socket, dispatch]);
 
   React.useEffect(() => {
     if (!isLoggedIn) {
@@ -85,7 +85,7 @@ function AppInner() {
             accessToken: response.data.data.accessToken,
           }),
         );
-      } catch (error) {
+      } catch (error: any) {
         console.warn(error.response);
         if ((error as AxiosError).response?.data.code === 'expired') {
           Alert.alert('알림', '다시 로그인 해주세요.');
@@ -93,6 +93,33 @@ function AppInner() {
       }
     };
     getTokenAndRefresh();
+  }, [dispatch]);
+
+  React.useEffect(() => {
+    restApi.interceptors.response.use(
+      response => response,
+      async error => {
+        const {
+          config,
+          response: {status},
+        } = error;
+        if (status === 419) {
+          if (error.response.data.code === 'expired') {
+            const originalRequest = config;
+            const refreshToken = await EncryptedStorage.getItem('refreshToken');
+            const {data} = await restApi.post(
+              'refreshToken',
+              {},
+              {headers: {authorization: `Bearer ${refreshToken}`}},
+            );
+            dispatch(userSlice.actions.setAccessToken(data.data.accessToken));
+            originalRequest.headers.authorization = `Bearer ${data.data.accessToken}`;
+            return axios(originalRequest);
+          }
+        }
+        return Promise.reject(error);
+      },
+    );
   }, [dispatch]);
 
   return (

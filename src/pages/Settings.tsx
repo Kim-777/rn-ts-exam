@@ -13,6 +13,20 @@ function Settings() {
     (state: RootState) => state.user,
   );
   const dispatch = useAppDispatch();
+
+  React.useEffect(() => {
+    async function getMoney() {
+      const response = await axios.get<{data: number}>(
+        `${getUrl()}/showmethemoney`,
+        {
+          headers: {authorization: `Bearer ${accessToken}`},
+        },
+      );
+      dispatch(userSlice.actions.setMoney(response.data.data));
+    }
+    getMoney();
+  }, [accessToken, dispatch]);
+
   const onLogout = React.useCallback(async () => {
     try {
       await axios.post(
